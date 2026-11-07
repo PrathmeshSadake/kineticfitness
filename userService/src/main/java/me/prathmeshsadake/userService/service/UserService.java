@@ -24,4 +24,8 @@ public class UserService {
         return userDto;
     }
 
+    public boolean existsByUserId(String userId){
+        return userRepository.existsById(userId);
+    }
+
 }

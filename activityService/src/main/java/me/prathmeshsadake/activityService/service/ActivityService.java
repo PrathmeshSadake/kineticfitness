@@ -6,7 +6,9 @@ import me.prathmeshsadake.activityService.dto.ActivityRequestDto;
 import me.prathmeshsadake.activityService.dto.ActivityResponseDto;
 import me.prathmeshsadake.activityService.model.Activity;
 import me.prathmeshsadake.activityService.repository.ActivityRepository;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -16,8 +18,14 @@ import java.util.List;
 public class ActivityService {
 
     private final ActivityRepository activityRepository;
+    private final UserValidationService userValidationService;
 
     public ActivityResponseDto trackActivity(ActivityRequestDto activityRequestDto) {
+        boolean isValidUser = userValidationService.validateUser(activityRequestDto.getUserId());
+        if (!isValidUser) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid user id: " + activityRequestDto.getUserId());
+        }
+
         Activity activity = Activity.builder()
                 .userId(activityRequestDto.getUserId())
                 .activityType(activityRequestDto.getType())
@@ -39,7 +47,7 @@ public class ActivityService {
 
     public ActivityResponseDto getActivityById(String activityId) {
         Activity activity = activityRepository.findById(activityId)
-                .orElseThrow(() -> new RuntimeException("Activity not found with id: " + activityId));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Activity not found with id: " + activityId));
         return mapToResponse(activity);
     }
 
