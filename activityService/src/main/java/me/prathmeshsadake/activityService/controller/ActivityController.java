@@ -5,11 +5,7 @@ import me.prathmeshsadake.activityService.dto.ActivityRequestDto;
 import me.prathmeshsadake.activityService.dto.ActivityResponseDto;
 import me.prathmeshsadake.activityService.service.ActivityService;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -24,8 +20,8 @@ public class ActivityController {
         return ResponseEntity.ok(activityService.trackActivity(activityRequestDto));
     }
 
-    @GetMapping("/user/{userId}")
-    public ResponseEntity<List<ActivityResponseDto>> getUserActivities(@PathVariable String userId) {
+    @GetMapping()
+    public ResponseEntity<List<ActivityResponseDto>> getUserActivities(@RequestHeader("X-User-ID") String userId) {
         return ResponseEntity.ok(activityService.getUserActivities(userId));
     }
 
