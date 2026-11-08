@@ -1,1 +1,29 @@
 .DS_Store
+
+# IntelliJ – keep secrets / local run configs out of git
+.idea/workspace.xml
+.idea/runConfigurations/
+.idea/shelf/
+
+# Local env / secrets
+.env
+.env.*
+**/application-local.properties
+**/*.local.properties
+
+# Build
+**/target/
+
+.run-logs/
+.
+# Log files
+*.log
+*.log.*
+*.log.*.*
+*.log.*.*.*
+*.log.*.*.*.*
+*.log.*.*.*.*.*
+*.log.*.*.*.*.*.*
+*.log.*.*.*.*.*.*.*
+*.log.*.*.*.*.*.*.*.*
+*.log.*.*.*.*.*.*.*.*.*

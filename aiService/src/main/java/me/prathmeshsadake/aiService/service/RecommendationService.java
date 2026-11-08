@@ -4,9 +4,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import me.prathmeshsadake.aiService.dto.ActivityResponseDto;
 import me.prathmeshsadake.aiService.dto.RecommendationResponseDto;
+import me.prathmeshsadake.aiService.messaging.ActivityMessage;
 import me.prathmeshsadake.aiService.model.Recommendation;
 import me.prathmeshsadake.aiService.repository.RecommendationRepository;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -26,15 +29,58 @@ public class RecommendationService {
     public RecommendationResponseDto getRecommendationForActivity(String activityId) {
         return recommendationRepository.findByActivityId(activityId)
                 .map(this::mapToResponse)
-                .orElseGet(() -> generateAndSave(activityId));
+                .orElseGet(() -> generateAndSaveFromActivityService(activityId));
     }
 
-    private RecommendationResponseDto generateAndSave(String activityId) {
-        log.info("Generating AI recommendation for activity {}", activityId);
+    public List<RecommendationResponseDto> getRecommendationsForUser(String userId) {
+        return recommendationRepository.findByUserId(userId).stream()
+                .map(this::mapToResponse)
+                .toList();
+    }
+
+    public RecommendationResponseDto getRecommendationById(String recommendationId) {
+        Recommendation recommendation = recommendationRepository.findById(recommendationId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Recommendation not found with id: " + recommendationId));
+        return mapToResponse(recommendation);
+    }
+
+    public void processActivityMessage(ActivityMessage message) {
+        if (message == null || message.getId() == null) {
+            log.warn("Ignoring empty activity message");
+            return;
+        }
+
+        if (recommendationRepository.findByActivityId(message.getId()).isPresent()) {
+            log.info("Recommendation already exists for activityId={}, skipping", message.getId());
+            return;
+        }
+
+        ActivityResponseDto activity = toActivityDto(message);
+        Recommendation generated = geminiService.generateRecommendation(activity);
+        Recommendation saved = recommendationRepository.save(generated);
+        log.info("Saved AI recommendation {} for activityId={}", saved.getId(), message.getId());
+    }
+
+    private RecommendationResponseDto generateAndSaveFromActivityService(String activityId) {
+        log.info("No cached recommendation found. Generating for activity {}", activityId);
         ActivityResponseDto activity = activityClientService.getActivityById(activityId);
         Recommendation generated = geminiService.generateRecommendation(activity);
         Recommendation saved = recommendationRepository.save(generated);
         return mapToResponse(saved);
+    }
+
+    private ActivityResponseDto toActivityDto(ActivityMessage message) {
+        ActivityResponseDto activity = new ActivityResponseDto();
+        activity.setId(message.getId());
+        activity.setUserId(message.getUserId());
+        activity.setActivityType(message.getActivityType());
+        activity.setDuration(message.getDuration());
+        activity.setCaloriesBurned(message.getCaloriesBurned());
+        activity.setStartTime(message.getStartTime());
+        activity.setAdditionalMetrics(message.getAdditionalMetrics());
+        activity.setCreatedAt(message.getCreatedAt());
+        return activity;
     }
 
     private RecommendationResponseDto mapToResponse(Recommendation recommendation) {

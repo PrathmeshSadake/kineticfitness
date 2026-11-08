@@ -3,10 +3,10 @@ package me.prathmeshsadake.aiService.service;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import me.prathmeshsadake.aiService.dto.ActivityResponseDto;
 import me.prathmeshsadake.aiService.model.Recommendation;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -20,14 +20,20 @@ import java.util.Map;
 
 @Service
 @Slf4j
-@RequiredArgsConstructor
 public class GeminiService {
 
     private final WebClient geminiWebClient;
     private final ObjectMapper objectMapper;
+    private final String geminiModel;
 
-    @Value("${gemini.model}")
-    private String geminiModel;
+    public GeminiService(
+            @Qualifier("geminiWebClient") WebClient geminiWebClient,
+            ObjectMapper objectMapper,
+            @Value("${gemini.model}") String geminiModel) {
+        this.geminiWebClient = geminiWebClient;
+        this.objectMapper = objectMapper;
+        this.geminiModel = geminiModel;
+    }
 
     public Recommendation generateRecommendation(ActivityResponseDto activity) {
         String prompt = buildPrompt(activity);

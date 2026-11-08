@@ -1,8 +1,8 @@
 package me.prathmeshsadake.aiService.service;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import me.prathmeshsadake.aiService.dto.ActivityResponseDto;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -14,10 +14,14 @@ import java.util.List;
 
 @Service
 @Slf4j
-@RequiredArgsConstructor
 public class ActivityClientService {
 
     private final WebClient activityServiceWebClient;
+
+    public ActivityClientService(
+            @Qualifier("activityServiceWebClient") WebClient activityServiceWebClient) {
+        this.activityServiceWebClient = activityServiceWebClient;
+    }
 
     public List<ActivityResponseDto> getUserActivities(String userId) {
         try {

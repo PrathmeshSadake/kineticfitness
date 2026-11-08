@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import me.prathmeshsadake.activityService.dto.ActivityRequestDto;
 import me.prathmeshsadake.activityService.dto.ActivityResponseDto;
+import me.prathmeshsadake.activityService.messaging.ActivityEventPublisher;
 import me.prathmeshsadake.activityService.model.Activity;
 import me.prathmeshsadake.activityService.repository.ActivityRepository;
 import org.springframework.http.HttpStatus;
@@ -19,6 +20,7 @@ public class ActivityService {
 
     private final ActivityRepository activityRepository;
     private final UserValidationService userValidationService;
+    private final ActivityEventPublisher activityEventPublisher;
 
     public ActivityResponseDto trackActivity(ActivityRequestDto activityRequestDto) {
         boolean isValidUser = userValidationService.validateUser(activityRequestDto.getUserId());
@@ -36,7 +38,9 @@ public class ActivityService {
                 .build();
 
         Activity savedActivity = activityRepository.save(activity);
-        return mapToResponse(savedActivity);
+        ActivityResponseDto response = mapToResponse(savedActivity);
+        activityEventPublisher.publishActivityCreated(response);
+        return response;
     }
 
     public List<ActivityResponseDto> getUserActivities(String userId) {
