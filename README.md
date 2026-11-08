@@ -2,8 +2,6 @@
 
 Production-style **microservices fitness platform**: users sign up / sign in with **JWT**, log workouts, and receive **AI coaching recommendations** generated asynchronously through **RabbitMQ + Google Gemini**.
 
-This README is written so you can reopen the project months later and still explain every moving part in an interview — and restart the stack locally without guessing.
-
 ---
 
 ## Table of contents
@@ -696,9 +694,7 @@ tail -f .run-logs/*.log
 
 ---
 
-## 18. Interview talking points
-
-Use these to explain the project cleanly:
+## 18. Points
 
 1. **Microservices + API Gateway**: browser talks to one edge service; gateway routes by path to Eureka-registered instances.
 2. **JWT at the edge**: gateway validates token once, strips forged identity headers, injects trusted `X-User-Id`.
