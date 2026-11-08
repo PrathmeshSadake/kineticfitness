@@ -7,6 +7,7 @@ import me.prathmeshsadake.aiService.dto.RecommendationResponseDto;
 import me.prathmeshsadake.aiService.messaging.ActivityMessage;
 import me.prathmeshsadake.aiService.model.Recommendation;
 import me.prathmeshsadake.aiService.repository.RecommendationRepository;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -27,7 +28,7 @@ public class RecommendationService {
     }
 
     public RecommendationResponseDto getRecommendationForActivity(String activityId) {
-        return recommendationRepository.findByActivityId(activityId)
+        return recommendationRepository.findFirstByActivityIdOrderByCreatedAtDesc(activityId)
                 .map(this::mapToResponse)
                 .orElseGet(() -> generateAndSaveFromActivityService(activityId));
     }
@@ -51,23 +52,36 @@ public class RecommendationService {
             return;
         }
 
-        if (recommendationRepository.findByActivityId(message.getId()).isPresent()) {
+        if (recommendationRepository.existsByActivityId(message.getId())) {
             log.info("Recommendation already exists for activityId={}, skipping", message.getId());
             return;
         }
 
         ActivityResponseDto activity = toActivityDto(message);
         Recommendation generated = geminiService.generateRecommendation(activity);
-        Recommendation saved = recommendationRepository.save(generated);
-        log.info("Saved AI recommendation {} for activityId={}", saved.getId(), message.getId());
+        saveIgnoringDuplicate(generated);
     }
 
     private RecommendationResponseDto generateAndSaveFromActivityService(String activityId) {
         log.info("No cached recommendation found. Generating for activity {}", activityId);
         ActivityResponseDto activity = activityClientService.getActivityById(activityId);
         Recommendation generated = geminiService.generateRecommendation(activity);
-        Recommendation saved = recommendationRepository.save(generated);
+        Recommendation saved = saveIgnoringDuplicate(generated);
         return mapToResponse(saved);
+    }
+
+    /**
+     * RabbitMQ listener and HTTP on-demand path can race; unique activityId + this helper
+     * makes the second writer reuse the winner's document instead of failing the API.
+     */
+    private Recommendation saveIgnoringDuplicate(Recommendation generated) {
+        try {
+            return recommendationRepository.save(generated);
+        } catch (DuplicateKeyException ex) {
+            log.info("Duplicate recommendation for activityId={}, loading existing", generated.getActivityId());
+            return recommendationRepository.findFirstByActivityIdOrderByCreatedAtDesc(generated.getActivityId())
+                    .orElseThrow(() -> ex);
+        }
     }
 
     private ActivityResponseDto toActivityDto(ActivityMessage message) {
