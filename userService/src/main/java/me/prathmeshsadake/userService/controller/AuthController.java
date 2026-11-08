@@ -2,9 +2,9 @@ package me.prathmeshsadake.userService.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import me.prathmeshsadake.userService.dto.AuthResponseDto;
 import me.prathmeshsadake.userService.dto.LoginRequestDto;
 import me.prathmeshsadake.userService.dto.RegisterRequestDto;
-import me.prathmeshsadake.userService.dto.UserDto;
 import me.prathmeshsadake.userService.service.AuthService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,14 +21,12 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/signup")
-    public ResponseEntity<UserDto> signup(@Valid @RequestBody RegisterRequestDto registerRequestDto) {
-        UserDto userDto = authService.createNewUser(registerRequestDto);
-        return new ResponseEntity<UserDto>(userDto, HttpStatus.CREATED);
+    public ResponseEntity<AuthResponseDto> signup(@Valid @RequestBody RegisterRequestDto registerRequestDto) {
+        return new ResponseEntity<>(authService.createNewUser(registerRequestDto), HttpStatus.CREATED);
     }
 
     @PostMapping("/login")
-    public String login(@Valid @RequestBody LoginRequestDto loginDto){
-        return authService.loginUser(loginDto);
+    public ResponseEntity<AuthResponseDto> login(@Valid @RequestBody LoginRequestDto loginDto) {
+        return ResponseEntity.ok(authService.loginUser(loginDto));
     }
-
 }

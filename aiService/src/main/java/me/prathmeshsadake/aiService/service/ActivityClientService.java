@@ -4,7 +4,10 @@ import lombok.extern.slf4j.Slf4j;
 import me.prathmeshsadake.aiService.dto.ActivityResponseDto;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
@@ -28,7 +31,7 @@ public class ActivityClientService {
             log.info("Fetching activities for user {}", userId);
             return activityServiceWebClient.get()
                     .uri("/")
-                    .header("X-User-ID", userId)
+                    .headers(this::propagateAuth)
                     .retrieve()
                     .bodyToMono(new ParameterizedTypeReference<List<ActivityResponseDto>>() {})
                     .block();
@@ -46,6 +49,7 @@ public class ActivityClientService {
             log.info("Fetching activity {}", activityId);
             return activityServiceWebClient.get()
                     .uri("/{activityId}", activityId)
+                    .headers(this::propagateAuth)
                     .retrieve()
                     .bodyToMono(ActivityResponseDto.class)
                     .block();
@@ -57,6 +61,17 @@ public class ActivityClientService {
         } catch (Exception e) {
             log.error("Activity service unreachable for activity {}", activityId, e);
             throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Activity service unavailable");
+        }
+    }
+
+    private void propagateAuth(HttpHeaders headers) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getCredentials() instanceof String token
+                && !token.isBlank()) {
+            headers.set(HttpHeaders.AUTHORIZATION, "Bearer " + token);
+        }
+        if (authentication != null && authentication.getName() != null) {
+            headers.set("X-User-Id", authentication.getName());
         }
     }
 }

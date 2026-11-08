@@ -1,8 +1,11 @@
 package me.prathmeshsadake.activityService.service;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
@@ -10,16 +13,29 @@ import org.springframework.web.server.ResponseStatusException;
 
 @Service
 @Slf4j
-@RequiredArgsConstructor
 public class UserValidationService {
 
     private final WebClient userServiceWebClient;
+
+    public UserValidationService(@Qualifier("userServiceWebClient") WebClient userServiceWebClient) {
+        this.userServiceWebClient = userServiceWebClient;
+    }
 
     public boolean validateUser(String userId) {
         try {
             log.info("Validating user id {}", userId);
             Boolean isValid = userServiceWebClient.get()
                     .uri("/{userId}/validate", userId)
+                    .headers(headers -> {
+                        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+                        if (authentication != null && authentication.getCredentials() instanceof String token
+                                && !token.isBlank()) {
+                            headers.set(HttpHeaders.AUTHORIZATION, "Bearer " + token);
+                        }
+                        if (authentication != null && authentication.getName() != null) {
+                            headers.set("X-User-Id", authentication.getName());
+                        }
+                    })
                     .retrieve()
                     .bodyToMono(Boolean.class)
                     .block();
